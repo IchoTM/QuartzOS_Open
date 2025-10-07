@@ -4,6 +4,8 @@
 
 use::core::panic::PanicInfo;
 
+mod vga_buffer;
+
 //Panic Handling
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {

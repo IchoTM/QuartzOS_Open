@@ -17,6 +17,7 @@ pub enum QemuExitCode {
     Failed = 0x11,
 }
 
+//Exit QEMU gracefully
 pub fn exit_qemu(exit_code: QemuExitCode) {
     use x86_64::instructions::port::Port;
 
@@ -24,6 +25,8 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
         let mut port = Port::new(0xf4);
         port.write(exit_code as u32);
     }
+
+    serial_println!("Exited QEMU with code: {:?}", exit_code);
 }
 
 //Panic Handling
@@ -34,8 +37,8 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 #[cfg(test)]
-pub fn test_runner(tests: &[&dyn Fn()]) {
-    println!("Running {} tests", tests.len());
+fn test_runner(tests: &[&dyn Fn()]) {
+    serial_println!("Running {} tests", tests.len());
     for test in tests {
         test();
     }
@@ -44,24 +47,26 @@ pub fn test_runner(tests: &[&dyn Fn()]) {
 
 #[test_case]
 fn trivial_assertion() {
-    print!("trivial assertion... ");
     assert_eq!(1, 1);
-    println!("[ok]");
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    println!("Hello{}", "!");
 
+    //Test code - Currently will not run even in test mode, fix later
     #[cfg(test)]{
-        serial_print!("Tests are running...\n");
-        println!("Running in test mode");
         test_main();
     }
 
-    #[cfg(not(test))]{
-        serial_print!("Non-test mode...\n");
-        println!("Running in non-test mode");
+    #[cfg(not(test))]
+    {
+        println!("Non-test mode...");
+        serial_println!("Running kernel in non-test build");
+
+        //Supposed to exit QEMU - Does not seem work currently
+        let exit_code = QemuExitCode::Success;
+        exit_qemu(exit_code);
     }
+
     loop {}
 }
